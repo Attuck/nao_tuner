@@ -12,7 +12,7 @@ import naoqi
 import numpy as np
 
 # Constant to send to the ALAudiodevice and use to compute the pitch based on the fft
-SAMPLE_RATE = 4800
+SAMPLE_RATE = 48000
 
 class SoundReceiverModule(naoqi.ALModule):
     """
@@ -20,13 +20,17 @@ class SoundReceiverModule(naoqi.ALModule):
     Your callback needs to be a method with two parameter (variable name, value).
     """
 
-    def __init__( self, strModuleName, strNaoIp ):
+    def __init__( self, strModuleName, strNaoIp, strNaoPort ):
         try:
             naoqi.ALModule.__init__(self, strModuleName );
             self.BIND_PYTHON( self.getName(),"callback" );
             self.strNaoIp = strNaoIp;
+            self.strNaoPort = strNaoPort;
             self.outfile = None;
             self.aOutfile = [None]*(4-1); # ASSUME max nbr channels = 4
+            # create proxy on ALMemory
+            self.memProxy = naoqi.ALProxy("ALMemory",strNaoIp,strNaoPort)
+
         except BaseException, err:
             print( "ERR: abcdk.naoqitools.SoundReceiverModule: loading error: %s" % str(err) );
 
@@ -88,12 +92,22 @@ class SoundReceiverModule(naoqi.ALModule):
             thefreq = (which+x1)*SAMPLE_RATE/nBlockSize
             if thefreq < 1100:
                 print "The freq is %f Hz." % (thefreq)
-                return thefreq
+                try:
+                    #insertData. Value can be int, float, list, string
+                    self.memProxy.insertData("ultimaFreq", thefreq)
+                except RuntimeError,e:
+                    # catch exception
+                    print "error insert data", e
         else:
             thefreq = which*SAMPLE_RATE/nBlockSize
             if thefreq < 1100:
                 print "The freq is %f Hz." % (thefreq)
-                return thefreq
+                try:
+                    #insertData. Value can be int, float, list, string
+                    self.memProxy.insertData("ultimaFreq", thefreq)
+                except RuntimeError,e:
+                    # catch exception
+                    print "error insert data", e
         return 0
     # processRemote - end
 
