@@ -26,11 +26,12 @@ NAO_IP = "10.0.252.126" # Default
 
 positionErrorThresholdPos = 0.01
 positionErrorThresholdAng = 0.03
-
+"""
 NOTES_TO_FREQ ={:'La':864.00,
                 :'Mi':323.63,
                 :'Do':256.87,
                 :'Sol':384.87}
+                """
 PITCH_THRESHHOLD = 0.2
 SLEEP_TIME = 2
 def log_diff(n,m):
@@ -66,6 +67,7 @@ def main():
     pport)       # parent broker port
     try:    
         ##
+        
         global SoundReceiver
         global motionProxy
         try:
@@ -78,10 +80,10 @@ def main():
             print "Could not create proxy"
             print "Error was: ",e
         motionProxy = naoqi.ALProxy("ALMotion", pip, pport)
-
         """
-            Detecta 'Ayuda' y se mueve hacia el sonido
-            
+        """
+            #Detecta 'Ayuda' y se mueve hacia el sonido
+        """
 
 
 
@@ -101,17 +103,17 @@ def main():
         print 'Speech recognition engine started'
         time.sleep(20)
         asr.unsubscribe("Test_ASR")
+        
         """
+        global pythonSpeechModule
 
-        global pythonSpeechModule;
-
-        pythonSpeechModule = SpeechRecoModule('pythonSpeechModule')
+        pythonSpeechModule = SpeechRecoModule('pythonSpeechModule', pip, pport)
         pythonSpeechModule.onLoad()
         pythonSpeechModule.onInput_onStart()
-        pythonSpeechModule.sleep(10)
+        time.sleep(30)
         pythonSpeechModule.onUnload()
 
-
+        """
         MuevaLaCabeza()
         theHeadPosition = motionProxy.getPosition("Head", 0, False)
         print theHeadPosition
@@ -124,7 +126,7 @@ def main():
         MuevaseAUkelele(x, y, Theta)
         SoundReceiver.start()
         """
-            Empieza a escuchar cada cuerda, calcula la frecuencia más cercana y dar retroalimentación para afinarla
+            #Empieza a escuchar cada cuerda, calcula la frecuencia más cercana y dar retroalimentación para afinarla
         """
         time.sleep(SLEEP_TIME)
         i = 0
@@ -161,18 +163,19 @@ def main():
             i+=1
 
         """
-            Se devuele el robot al punto inicial y debería poder empezar de nuevo.
+            #Se devuele el robot al punto inicial y debería poder empezar de nuevo.
         """
         SoundReceiver.pause()
         DeMediaVuelta() 
         MuevaseAlCentro(x, y, Theta)
         DeMediaVuelta()
-        
+        """
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print
         print "Interrupted by user, shutting down"
+        pythonSpeechModule.onUnload()
         tts.say("Adios")
         myBroker.shutdown()
         sys.exit(0)

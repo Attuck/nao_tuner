@@ -1,18 +1,17 @@
 from naoqi import *
 import time
 
-ROBOT_IP = '192.168.0.105'
-ROBOT_IP = 'marvel.local'
+
 
 class SpeechRecoModule(ALModule):
     """ A module to use speech recognition """
-    def __init__(self, name):
+    def __init__(self, name, strNaoIp, strNaoPort):
         ALModule.__init__(self, name)
         try:
-            self.asr = ALProxy("ALSpeechRecognition")
+            self.asr = ALProxy("ALSpeechRecognition", strNaoIp, strNaoPort)
         except Exception as e:
             self.asr = None
-        self.memory = ALProxy("ALMemory")
+        self.memory = ALProxy("ALMemory", strNaoIp, strNaoPort)
 
     def onLoad(self):
         from threading import Lock
@@ -50,7 +49,8 @@ class SpeechRecoModule(ALModule):
                 self.asr.pushContexts()
             self.hasPushed = True
             if self.asr:
-                self.asr.setVocabulary( ['yes','no'], True )
+                self.asr.setLanguage("Spanish")
+                self.asr.setVocabulary( ['ayuda','adios', 'zulu', 'papa', 'hola'], False )
             self.memory.subscribeToEvent("WordRecognized", self.getName(), "onWordRecognized")
             self.hasSubscribed = True
         except RuntimeError, e:
@@ -61,6 +61,8 @@ class SpeechRecoModule(ALModule):
 
     def onWordRecognized(self, key, value, message):
         print 'word recognized'
+        print message
+        print value
         if(len(value) > 1 and value[1] >= 0.5):
             print 'recognized the word :', value[0]
         else:
