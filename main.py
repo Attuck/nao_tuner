@@ -19,6 +19,7 @@ import sys
 import time
 import almath
 import random
+from naoqi import ALProxy
 
 NAO_IP = "10.0.252.126" # Default
 
@@ -79,6 +80,26 @@ def main():
 
         """
             Detecta 'Ayuda' y se mueve hacia el sonido
+            
+
+
+
+        ROBOT_IP = "your.robot.ip.here"
+        
+        # Creates a proxy on the speech-recognition module
+        asr = ALProxy("ALSpeechRecognition", ROBOT_IP, 9559)
+        
+        asr.setLanguage("English")
+        
+        # Example: Adds "yes", "no" and "please" to the vocabulary (without wordspotting)
+        vocabulary = ["yes", "no", "please"]
+        asr.setVocabulary(vocabulary, False)
+        
+        # Start the speech recognition engine with user Test_ASR
+        asr.subscribe("Test_ASR")
+        print 'Speech recognition engine started'
+        time.sleep(20)
+        asr.unsubscribe("Test_ASR")
         """
         MuevaLaCabeza()
         theHeadPosition = motionProxy.getPosition("Head", 0, False)
