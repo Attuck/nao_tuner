@@ -14,6 +14,7 @@
 
 from optparse import OptionParser
 from soundreciever import SoundReceiverModule
+from speechrecomodule import SpeechRecoModule
 import naoqi
 import sys
 import time
@@ -101,6 +102,16 @@ def main():
         time.sleep(20)
         asr.unsubscribe("Test_ASR")
         """
+
+        global pythonSpeechModule;
+
+        pythonSpeechModule = SpeechRecoModule('pythonSpeechModule')
+        pythonSpeechModule.onLoad()
+        pythonSpeechModule.onInput_onStart()
+        pythonSpeechModule.sleep(10)
+        pythonSpeechModule.onUnload()
+
+
         MuevaLaCabeza()
         theHeadPosition = motionProxy.getPosition("Head", 0, False)
         print theHeadPosition
