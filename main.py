@@ -15,6 +15,7 @@
 from optparse import OptionParser
 from soundreciever import SoundReceiverModule
 from speechrecomodule import SpeechRecoModule
+from visionrecomodule import VisionRecoModule
 import naoqi
 import sys
 import time
@@ -70,49 +71,44 @@ def main():
         
         global SoundReceiver
         global motionProxy
+        global SpeechRecogModule
+
         try:
             SoundReceiver = SoundReceiverModule("SoundReceiver", pip, pport)
             tts = naoqi.ALProxy("ALTextToSpeech", pip, pport)
             naoqi.ALProxy('ALBasicAwareness',pip, pport).stopAwareness()
-            memProxy = naoqi.ALProxy("ALMemory",pip, pport)
-
+            MemoryProxy = naoqi.ALProxy("ALMemory",pip, pport)
+            SpeechRecogModule = SpeechRecoModule('SpeechRecogModule', pip, pport)
+            motionProxy = naoqi.ALProxy("ALMotion", pip, pport)
+            VisionRecogModule= VisionRecoModule('VisionRecoModule', pip, pport)
         except Exception,e:
             print "Could not create proxy"
             print "Error was: ",e
-        motionProxy = naoqi.ALProxy("ALMotion", pip, pport)
-        """
-        """
-            #Detecta 'Ayuda' y se mueve hacia el sonido
-        """
-
-
-
-        ROBOT_IP = "your.robot.ip.here"
         
-        # Creates a proxy on the speech-recognition module
-        asr = ALProxy("ALSpeechRecognition", ROBOT_IP, 9559)
-        
-        asr.setLanguage("English")
-        
-        # Example: Adds "yes", "no" and "please" to the vocabulary (without wordspotting)
-        vocabulary = ["yes", "no", "please"]
-        asr.setVocabulary(vocabulary, False)
-        
-        # Start the speech recognition engine with user Test_ASR
-        asr.subscribe("Test_ASR")
-        print 'Speech recognition engine started'
-        time.sleep(20)
-        asr.unsubscribe("Test_ASR")
         
         """
-        global pythonSpeechModule
+            #Detecta 'Ayuda' 
+        """
+        SpeechRecogModule.start()
+        end_time = time.time() + 10 #cada 10 segundos dice algo
+        recognized_help = False
+        loop_regog = True
+        while loop_regog:
+            readdata = MemoryProxy.getData("speechrecog")
+            while not recognized_help:
+                if readdata == "ayuda":
+                    recognized_help = True
+                    loop_regog = False
+                else:
+                    if time.time() > end_time:
+                        break
+                    readdata = MemoryProxy.getData("speechrecog")
+            tts.say("Pídame ayuda")
+        SpeechRecogModule.stop()
 
-        pythonSpeechModule = SpeechRecoModule('pythonSpeechModule', pip, pport)
-        pythonSpeechModule.onLoad()
-        pythonSpeechModule.onInput_onStart()
-        time.sleep(30)
-        pythonSpeechModule.onUnload()
-
+        """
+            #Detecta dirección y se mueve hacia el sonido
+            #TODO
         """
         MuevaLaCabeza()
         theHeadPosition = motionProxy.getPosition("Head", 0, False)
@@ -124,18 +120,25 @@ def main():
         AnguloHeadPitch = theHeadPosition[5]   
         RoteElCuerpo(Theta, AnguloHeadYaw, AnguloHeadPitch)      
         MuevaseAUkelele(x, y, Theta)
-        SoundReceiver.start()
+        """
+            #Detecta ukulele
+            #TODO read mem values
+        """
+        VisionRecogModule.start()
+        time.sleep(15)
+        VisionRecogModule.stop()
         """
             #Empieza a escuchar cada cuerda, calcula la frecuencia más cercana y dar retroalimentación para afinarla
         """
+        SoundReceiver.start()
         time.sleep(SLEEP_TIME)
         i = 0
         afinando = True
         notas = NOTES_TO_FREQ.keys()
         while (afinando):
-            tts.say("Toque la cuerda número " str(i+1) ", que debe ser la nota " + notas[i])
+            TTSProxy.say("Toque la cuerda número " str(i+1) ", que debe ser la nota " + notas[i])
             try:
-                lastfreq =[memProxy.getData("freqs"+i) for i in range(0,10)]
+                lastfreq =[MemoryProxy.getData("freqs"+i) for i in range(0,10)]
                 print "ultimasFreq :", str(lastfreq)
             except RuntimeError,e:
                 # catch exception
@@ -144,21 +147,21 @@ def main():
 
             if lastfreq != 0:
                 medianfreq = np.median(lastfreq)
-                tts.say("La frecuencia que escuché es  de" + str(medianfreq) + "hercios")
+                TTSProxy.say("La frecuencia que escuché es  de" + str(medianfreq) + "hercios")
                 logdiff = log_diff(medianfreq,NOTES_TO_FREQ[notas[i]])
                 if abs(log_diff) <= PITCH_THRESHHOLD:
-                    tts.say("La cuerda está afinada Muy Bien!")
+                    TTSProxy.say("La cuerda está afinada Muy Bien!")
                     if(i == len(NOTES_TO_FREQ)-1):
                         afinando = False
                     else:
                         i+=1
                 else:
                     if logdiff > 0:
-                        tts.say("La cuerda está muy alta, bájele")
+                        TTSProxy.say("La cuerda está muy alta, bájele")
                     else:
-                        tts.say("La cuerda está muy baja, súbale")
+                        TTSProxy.say("La cuerda está muy baja, súbale")
             else:
-                tts.say("No pude escuchar ni picha, Baaai")
+                TTSProxy.say("No pude escuchar ni picha, Baaai")
             time.sleep(SLEEP_TIME)
             i+=1
 
@@ -169,17 +172,21 @@ def main():
         DeMediaVuelta() 
         MuevaseAlCentro(x, y, Theta)
         DeMediaVuelta()
-        """
-        while True:
-            time.sleep(1)
+        
     except KeyboardInterrupt:
-        print
         print "Interrupted by user, shutting down"
-        pythonSpeechModule.onUnload()
-        tts.say("Adios")
+        SpeechRecogModule.stop()
+        SoundReceiver.stop()
+        TTSProxy.say("Adios")
         myBroker.shutdown()
         sys.exit(0)
-
+    finally:
+        print "Interrupted by user, shutting down"
+        SpeechRecogModule.stop()
+        SoundReceiver.stop()
+        TTSProxy.say("Adios")
+        myBroker.shutdown()
+        sys.exit(0)
 
 
 def MuevaLaCabeza():
