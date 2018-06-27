@@ -1,9 +1,9 @@
-#LEARN  IMAGES
+
 
 import time
 import naoqi
 
-# create python module
+
 class VisionRecoModule(ALModule):
     """A module to use vision recognition"""
 
@@ -11,28 +11,29 @@ class VisionRecoModule(ALModule):
 
     def __init__(self, strModuleName, strNaoIp, strNaoPort):
         naoqi.ALModule.__init__(self, strModuleName )
+        self.BIND_PYTHON( self.getName(),"callback" )
         self.strNaoIp = strNaoIp
         self.strNaoPort = strNaoPort
         try:
-            self.memory = ALProxy("ALMemory", strNaoIp, strNaoPort)
+            self.memory = naoqi.ALProxy("ALMemory", strNaoIp, strNaoPort)
         except RuntimeError,e:
             print "Error when creating ALMemory proxy:"+str(e)
     
     def start(self):
         """Have the python module called back when picture recognition results change."""
         try:
-        memoryProxy.subscribeToEvent(self.memValue, self.getName(), "pictureChanged")
+        self.memory.subscribeToEvent(memValue, self.getName(), "pictureChanged")
         except RuntimeError,e:
         print "Error when subscribing to micro event"
         exit(1)
         
     def pictureChanged(self, strVarName, value, strMessage):
         """callback when data change"""
-        print "datachanged", strVarName
+        print "FOFI_vision_recog-detected", strVarName, " ", value, " ", strMessage
         #TODO write read mem values
 
     def stop(self):
-        memoryProxy.unsubscribeToEvent(memValue, moduleName)
+        self.memory.unsubscribeToEvent(memValue, self.getName())
 
 
 

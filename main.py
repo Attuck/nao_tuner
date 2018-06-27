@@ -16,6 +16,7 @@ from optparse import OptionParser
 from soundreciever import SoundReceiverModule
 from speechrecomodule import SpeechRecoModule
 from visionrecomodule import VisionRecoModule
+from soundlocalization import SoundLocalizationModule
 import naoqi
 import sys
 import time
@@ -81,15 +82,17 @@ def main():
             SpeechRecogModule = SpeechRecoModule('SpeechRecogModule', pip, pport)
             motionProxy = naoqi.ALProxy("ALMotion", pip, pport)
             VisionRecogModule= VisionRecoModule('VisionRecoModule', pip, pport)
+            SoundLocModule = SoundLocalizationModule('SoundLocModule', pip, pport)
         except Exception,e:
             print "Could not create proxy"
             print "Error was: ",e
         
         
         """
-            #Detecta 'Ayuda' 
+            #Detecta 'Ayuda' y guarda en qué dirección la detectó
         """
         SpeechRecogModule.start()
+        SoundLocModule.start()
         end_time = time.time() + 10 #cada 10 segundos dice algo
         recognized_help = False
         loop_regog = True
@@ -99,16 +102,18 @@ def main():
                 if readdata == "ayuda":
                     recognized_help = True
                     loop_regog = False
+                    #TODO leer dirección
                 else:
                     if time.time() > end_time:
                         break
                     readdata = MemoryProxy.getData("speechrecog")
             tts.say("Pídame ayuda")
         SpeechRecogModule.stop()
+        SoundLocModule.stop()
 
         """
-            #Detecta dirección y se mueve hacia el sonido
-            #TODO
+            #Se mueve hacia la dirección del sonido detectado
+
         """
         MuevaLaCabeza()
         theHeadPosition = motionProxy.getPosition("Head", 0, False)
