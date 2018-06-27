@@ -1,17 +1,20 @@
-from naoqi import *
+import naoqi
 import time
 
 
 
 class SpeechRecoModule(ALModule):
     """ A module to use speech recognition """
-    def __init__(self, name, strNaoIp, strNaoPort):
-        ALModule.__init__(self, name)
+    def __init__(self, strModuleName, strNaoIp, strNaoPort):
+        naoqi.ALModule.__init__(self, strModuleName )
+        self.strNaoIp = strNaoIp
+        self.strNaoPort = strNaoPort
         try:
             self.asr = ALProxy("ALSpeechRecognition", strNaoIp, strNaoPort)
         except Exception as e:
             self.asr = None
         self.memory = ALProxy("ALMemory", strNaoIp, strNaoPort)
+        self.onLoad()
 
     def onLoad(self):
         from threading import Lock
@@ -36,7 +39,7 @@ class SpeechRecoModule(ALModule):
         self.bIsRunning = False;
         self.mutex.release()
 
-    def onInput_onStart(self):
+    def start(self):
         from threading import Lock
         self.mutex.acquire()
         if(self.bIsRunning):
@@ -50,7 +53,7 @@ class SpeechRecoModule(ALModule):
             self.hasPushed = True
             if self.asr:
                 self.asr.setLanguage("Spanish")
-                self.asr.setVocabulary( ['ayuda','adios', 'zulu', 'papa', 'hola'], False )
+                self.asr.setVocabulary( ['ayuda'], False )
             self.memory.subscribeToEvent("WordRecognized", self.getName(), "onWordRecognized")
             self.hasSubscribed = True
         except RuntimeError, e:
@@ -65,6 +68,11 @@ class SpeechRecoModule(ALModule):
         print value
         if(len(value) > 1 and value[1] >= 0.5):
             print 'recognized the word :', value[0]
+            self.memProxy.insertData("speechrecog", value[0])
         else:
-            print 'unsifficient threshold'
+            self.memProxy.insertData("speechrecog", "None")
+
+    def stop(self):
+        self.onUnload()
+
 

@@ -87,12 +87,14 @@ class SoundReceiverModule(naoqi.ALModule):
             fftData=abs(aFft)**2
             # find the maximum
             which = fftData[1:].argmax() + 1
-            # use quadratic interpolation around the max
+            # use quadratic interpolation around the max if its not the last
             if which != len(fftData)-1:
                 y0,y1,y2 = np.log(fftData[which-1:which+2:])
                 x1 = (y2 - y0) * .5 / (2 * y1 - y2 - y0)
+
                 # find the frequency and output it
                 thefreq = (which+x1)*SAMPLE_RATE/nBlockSize
+                #ignora frecuencias demasiado altas: probablemente ruido.
                 if thefreq < 1100:
                     print "The freq is %f Hz." % (thefreq)
                     try:
