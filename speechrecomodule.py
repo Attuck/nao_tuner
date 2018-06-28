@@ -3,17 +3,17 @@ import time
 
 
 
-class SpeechRecoModule(ALModule):
+class SpeechRecoModule(naoqi.ALModule):
     """ A module to use speech recognition """
     def __init__(self, strModuleName, strNaoIp, strNaoPort):
         naoqi.ALModule.__init__(self, strModuleName )
         self.strNaoIp = strNaoIp
         self.strNaoPort = strNaoPort
         try:
-            self.asr = ALProxy("ALSpeechRecognition", strNaoIp, strNaoPort)
+            self.asr = naoqi.ALProxy("ALSpeechRecognition", strNaoIp, strNaoPort)
         except Exception as e:
             self.asr = None
-        self.memory = ALProxy("ALMemory", strNaoIp, strNaoPort)
+        self.memory = naoqi.ALProxy("ALMemory", strNaoIp, strNaoPort)
         self.onLoad()
 
     def onLoad(self):
@@ -63,16 +63,14 @@ class SpeechRecoModule(ALModule):
         self.mutex.release()
 
     def onWordRecognized(self, key, value, message):
-        print 'word recognized'
-        print message
-        print value
         if(len(value) > 1 and value[1] >= 0.5):
             print 'recognized the word :', value[0]
-            self.memProxy.insertData("speechrecog", value[0])
+            self.memory.insertData("speechrecog", value[0])
         else:
-            self.memProxy.insertData("speechrecog", "None")
+            self.memory.insertData("speechrecog", "None")
 
     def stop(self):
         self.onUnload()
+        print "SpeechRecog stopped!"
 
 

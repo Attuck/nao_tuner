@@ -49,12 +49,14 @@ class SoundReceiverModule(naoqi.ALModule):
         nSampleRate = SAMPLE_RATE
         audio.setClientPreferences( self.getName(),  nSampleRate, nNbrChannelFlag, nDeinterleave ) # setting same as default generate a bug !?!
         audio.subscribe( self.getName() )
+        self.pause = True
         print( "INF: SoundReceiver: started!" )
 
     def stop( self ):
         print( "INF: SoundReceiver: stopping..." )
         audio = naoqi.ALProxy( "ALAudioDevice", self.strNaoIp, 9559 )
         audio.unsubscribe( self.getName() )
+        self.pause = False
         print( "INF: SoundReceiver: stopped!" )
         if( self.outfile != None ):
             self.outfile.close()
@@ -100,6 +102,7 @@ class SoundReceiverModule(naoqi.ALModule):
                     try:
                         #insertData. Value can be int, float, list, string
                         self.memProxy.insertData("freqs"+str(self.write_index % self.MAX_INDEX), thefreq)
+                        #print "freqs"+str(self.write_index % self.MAX_INDEX)
                         self.write_index+=1
                     except RuntimeError,e:
                         # catch exception
@@ -111,6 +114,7 @@ class SoundReceiverModule(naoqi.ALModule):
                     try:
                         #insertData. Value can be int, float, list, string
                         self.memProxy.insertData("freqs"+ str(self.write_index % self.MAX_INDEX), thefreq)
+                        #print "freqs"+str(self.write_index % self.MAX_INDEX)
                         self.write_index+=1
                     except RuntimeError,e:
                         # catch exception
@@ -119,13 +123,13 @@ class SoundReceiverModule(naoqi.ALModule):
     # processRemote - end
 
     def pause( self ):
-        self.pause = True
+        self.pause = False
         self.write_index = 0
 
     def resume( self ):
-        self.pause = False
+        self.pause = True
 
     def version( self ):
-        return "0.5"
+        return "0.6"
 
 # SoundReceiver - end
