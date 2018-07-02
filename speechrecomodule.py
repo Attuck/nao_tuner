@@ -2,9 +2,9 @@ import naoqi
 import time
 
 
-
 class SpeechRecoModule(naoqi.ALModule):
     """ A module to use speech recognition """
+    
     def __init__(self, strModuleName, strNaoIp, strNaoPort):
         naoqi.ALModule.__init__(self, strModuleName )
         self.strNaoIp = strNaoIp

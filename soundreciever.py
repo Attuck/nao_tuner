@@ -32,7 +32,7 @@ class SoundReceiverModule(naoqi.ALModule):
             self.memProxy = naoqi.ALProxy("ALMemory",strNaoIp,strNaoPort)
             self.pause = False
             self.write_index = 0
-            self.MAX_INDEX = 10
+            self.MAX_INDEX = 50
 
         except BaseException, err:
             print( "ERR: abcdk.naoqitools.SoundReceiverModule: loading error: %s" % str(err) );
@@ -98,24 +98,28 @@ class SoundReceiverModule(naoqi.ALModule):
                 thefreq = (which+x1)*SAMPLE_RATE/nBlockSize
                 #ignora frecuencias demasiado altas: probablemente ruido.
                 if thefreq < 1100:
-                    print "The freq is %f Hz." % (thefreq)
+                    # print "The freq is %f Hz." % (thefreq)
                     try:
                         #insertData. Value can be int, float, list, string
-                        self.memProxy.insertData("freqs"+str(self.write_index % self.MAX_INDEX), thefreq)
+                        self.memProxy.insertData("freqs"+str(self.write_index), thefreq)
                         #print "freqs"+str(self.write_index % self.MAX_INDEX)
                         self.write_index+=1
+                        if self.write_index == self.MAX_INDEX:
+                            self.write_index =0
                     except RuntimeError,e:
                         # catch exception
                         print "error insert data", e
             else:
                 thefreq = which*SAMPLE_RATE/nBlockSize
                 if thefreq < 1100:
-                    print "The freq is %f Hz." % (thefreq)
+                    # print "The freq is %f Hz." % (thefreq)
                     try:
                         #insertData. Value can be int, float, list, string
-                        self.memProxy.insertData("freqs"+ str(self.write_index % self.MAX_INDEX), thefreq)
+                        self.memProxy.insertData("freqs"+ str(self.write_index), thefreq)
                         #print "freqs"+str(self.write_index % self.MAX_INDEX)
                         self.write_index+=1
+                        if self.write_index == self.MAX_INDEX:
+                            self.write_index =0
                     except RuntimeError,e:
                         # catch exception
                         print "error insert data", e

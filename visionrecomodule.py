@@ -1,18 +1,13 @@
-
-
 import time
 import naoqi
-
-memValue = "PictureDetected" # ALMemory variable where the ALVisionRecognition module outputs its results.
 
 
 class VisionRecoModule(naoqi.ALModule):
     """A module to use vision recognition"""
 
-
     def __init__(self, strModuleName, strNaoIp, strNaoPort):
         naoqi.ALModule.__init__(self, strModuleName )
-        #self.BIND_PYTHON( self.getName(),"callback" )
+        self.BIND_PYTHON(self.getName(), "pictureChanged")
         self.strNaoIp = strNaoIp
         self.strNaoPort = strNaoPort
         try:
@@ -31,8 +26,14 @@ class VisionRecoModule(naoqi.ALModule):
         
     def pictureChanged(self, strVarName, value, strMessage):
         """callback when data change"""
-        print "FOFI_vision_recog-detected", strVarName, " ", value, " ", strMessage
-        self.memory.insertData("visionrecog", "ukulele")
+        print "datachanged", strVarName, " ", value, " ", strMessage
+        try:
+            objectName = value[1][0][0][0]
+            print objectName
+            self.memory.insertData("visionrecog",objectName)
+        except Exception, e:
+            print e
+        
         #TODO write read mem values
 
     def stop(self):

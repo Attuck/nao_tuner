@@ -23,6 +23,7 @@ import time
 import almath
 import random
 from numpy import sin, cos
+from scipy.stats import mode
 import numpy as np
 
 NAO_IP = "10.84.118.19" # Default
@@ -30,10 +31,10 @@ NAO_IP = "10.84.118.19" # Default
 positionErrorThresholdPos = 0.01
 positionErrorThresholdAng = 0.03
 NOTES = ['Laaaa','Miiiii','Dooooo','Sooool']
-FREQ = [880.00,659.25,523.25,783.991]
+FREQ = [880.00,330,523.25,783.991]
 
 
-PITCH_THRESHHOLD = 0.1
+PITCH_THRESHHOLD = 0.08
 SLEEP_TIME = 4
 def log_diff(n,m):
     return np.log(n) - np.log(m)
@@ -77,74 +78,75 @@ def main():
         try:
             
             TTSProxy = naoqi.ALProxy("ALTextToSpeech", pip, pport)
-            motionProxy = naoqi.ALProxy("ALMotion", pip, pport)
+            # motionProxy = naoqi.ALProxy("ALMotion", pip, pport)
             MemoryProxy = naoqi.ALProxy("ALMemory",pip, pport)
             #naoqi.ALProxy('ALBasicAwareness',pip, pport).stopAwareness()
            
-            SoundReceiver = SoundReceiverModule("SoundReceiver", pip, pport)
+            SoundReceiver = SoundReceiverModule('SoundReceiver', pip, pport)
             SpeechRecogModule = SpeechRecoModule('SpeechRecogModule', pip, pport)
-            VisionRecogModule= VisionRecoModule('VisionRecoModule', pip, pport)
-            SoundLocModule = SoundLocalizationModule('SoundLocModule', pip, pport)
+            VisionRecogModule= VisionRecoModule('VisionRecogModule', pip, pport)
+            # SoundLocModule = SoundLocalizationModule('SoundLocModule', pip, pport)
         except Exception,e:
             print "Could not create proxy"
             print "Error was: ",e
-        
-        
+      
         """
             #Detecta 'Ayuda' y guarda en qué dirección la detectó
         """
         SpeechRecogModule.start()
-        SoundLocModule.start()
+        # SoundLocModule.start()
+
         TTSProxy.say('Pidame ayuda')
         MemoryProxy.insertData("speechrecog", "None")
-        MemoryProxy.insertData("azimuth", "0.0")
-        
+      #  MemoryProxy.insertData("azimuth", 0.0)
+        #MuevaLaCabeza(0.0)
         while True:
-            time.sleep(3)
+            readdata = ''
             try:
                 readdata = MemoryProxy.getData("speechrecog")
-                azimuth = float(MemoryProxy.getData("azimuth"))
+                # azimuth = float(MemoryProxy.getData("azimuth"))
             except Exception as e:
                 print "readdata error", e
-                readdata = ''
-                azimuth = 0.0
-            print azimuth
+               # azimuth = 0.0
             if readdata == "ayuda":
                 #MuevaLaCabeza(11)
-                print azimuth
+                # print azimuth
                 MemoryProxy.insertData("speechrecog", "None")
                 break
         TTSProxy.say('O key')
         SpeechRecogModule.stop()
-        SoundLocModule.stop()
+        # SoundLocModule.stop()
+        
+        # angle = azimuth
+        # h = 0.2
+        # x = h/sin(angle)
+        # y = h/cos(angle)
+        # motionProxy.moveTo(x, y, angle)
+        
 
         """
             #Se mueve hacia la dirección del sonido detectado
 
         """
-        angle = azimuth
-        h = 0.2
-        x = h/sin(angle)
-        y = h/cos(angle)
-        motionProxy.moveTo(x, y, angle)
 
         """
             #Detecta ukulele
-            #TODO read mem values
         """
-        # VisionRecogModule.start()
-        # TTSProxy.say('Muéstreme el ukelele')
-        # MemoryProxy.insertData("visionrecog", "None")
-        # while True:
-        #     readdata = ''
-        #     try:
-        #         readdata = MemoryProxy.getData("visionrecog")
-        #     except Exception as e:
-        #         print "readdata error", e
-        #     if readdata == "ukulele":
-        #         MemoryProxy.insertData("visionrecog", "None")
-        #         break
-        # VisionRecogModule.stop()
+        VisionRecogModule.start()
+        TTSProxy.say('Muéstreme el ukelele')
+        MemoryProxy.insertData("visionrecog", "None")
+        while True:
+            readdata = ''
+            try:
+                readdata = MemoryProxy.getData("visionrecog")
+            except Exception as e:
+                print "readdata error", e
+            if readdata == "ukulele":
+                MemoryProxy.insertData("visionrecog", "None")
+                break
+
+        VisionRecogModule.stop()
+        TTSProxy.say('He visto el ukelele, ¡Afinemos!')
         """
             #Empieza a escuchar cada cuerda, calcula la frecuencia más cercana y dar retroalimentación para afinarla
         """
@@ -156,7 +158,7 @@ def main():
             TTSProxy.say("Toque la cuerda número " + str(i+1) + ", que debe ser la nota " + NOTES[i])
             time.sleep(SLEEP_TIME)
             try:
-                lastfreq =[MemoryProxy.getData("freqs"+str(j)) for j in range(0,10)]
+                lastfreq =[MemoryProxy.getData("freqs"+str(j)) for j in range(0,50)]
                 print "ultimasFreq :", str(lastfreq)
             except RuntimeError,e:
                 # catch exception
@@ -164,16 +166,37 @@ def main():
                 lastfreq = 0
 
             if lastfreq != 0:
-                medianfreq = np.median(lastfreq)
-                TTSProxy.say("La frecuencia que escuché es  de" + str(medianfreq)[:-10] + "hercios")
-                logdiff = log_diff(medianfreq,FREQ[i])
-                if np.absolute(logdiff) <= PITCH_THRESHHOLD:
+                roundedfreqs= np.rint(lastfreq)
+                print roundedfreqs
+                medianfreq = mode(roundedfreqs)
+                print(medianfreq.mode[0])
+                #medianfreq = np.median(lastfreq)
+                TTSProxy.say("La frecuencia que escuché es  de" + str(medianfreq.mode[0]) + "hercios")
+                medianfreq = int(medianfreq.mode[0])
+                try:
+                    logdiffarray = np.zeros(3)
+                    print logdiffarray
+                    logdiffarray[0]= log_diff(medianfreq,FREQ[i])
+                    logdiffarray[1]= log_diff(medianfreq,FREQ[i]/2)
+                    logdiffarray[2]= log_diff(medianfreq,FREQ[i]*2)
+                    print logdiffarray
+                    logdiff = 1
+                    for diff in logdiffarray:
+                        if np.abs(diff) < np.abs(logdiff):
+                            logdiff = diff
+                    print logdiff
+                except Exception, e:
+                    print e
+                    logdiff = 1
+               
+                if np.abs(logdiff) <= PITCH_THRESHHOLD:
                     TTSProxy.say("La cuerda está afinada Muy Bien!")
                     if(i == len(NOTES)-1):
                         afinando = False
                     else:
                         i+=1
                 else:
+
                     if logdiff > 0:
                         TTSProxy.say("La cuerda está muy alta, bájele")
                     else:
@@ -184,35 +207,34 @@ def main():
         """
             #Se devuele el robot al punto inicial y debería poder empezar de nuevo.
         """
-        h = 0.2
-        x = h/sin(angle)
-        y = h/cos(angle)
-        motionProxy.moveTo(x, y, angle)
+        # h = 0.2
+        # x = h/sin(angle)
+        # y = h/cos(angle)
+        # motionProxy.moveTo(x, y, angle)
         TTSProxy.say('La afinación de su ukelele está 5 de 7. Chao!')
         
     except KeyboardInterrupt:
         print "Interrupted by user, shutting down"
         SpeechRecogModule.stop()
         SoundReceiver.stop()
-        SoundLocModule.stop()
+        # SoundLocModule.stop()
         TTSProxy.say("Adios")
         myBroker.shutdown()
         sys.exit(0)
     except Exception as e:
         type, value, traceback = sys.exc_info()
-        print('Error %s: %s' % (value, str(traceback)))
+        print('Error %s: %s' % (value.filename, value.strerror))
         SpeechRecogModule.stop()
         SoundReceiver.stop()
-        SoundLocModule.stop()
+        # SoundLocModule.stop()
         TTSProxy.say("Adios")
         myBroker.shutdown()
-        raise e
         sys.exit(0)
     finally:
         print "Finally"
         SpeechRecogModule.stop()
         SoundReceiver.stop()
-        SoundLocModule.stop()
+        # SoundLocModule.stop()
         myBroker.shutdown()
         sys.exit(0)
 
@@ -224,7 +246,7 @@ def MuevaLaCabeza(angle):
     # in two seconds
     motionProxy.post.angleInterpolation(
         ["HeadYaw"],
-        [0.0,1.5],
+        [0.0,0.0],
         [1  , 2],
         False
     )

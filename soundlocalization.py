@@ -26,12 +26,12 @@ class SoundLocalizationModule(naoqi.ALModule):
             self.sd.subscribe(self.getName())
         except RuntimeError,e:
             print "Error when subscribing to micro event", e
-        self.sd.setParameter("Sensitivity", 0.3)
+        self.sd.setParameter("Sensitivity", 0.1)
 
     def soundDetected(self, strVarName, value, strMessage):
         """callback when data change"""
         self.memory.insertData("azimuth", value[1][0])
-        print(value[1][0])
+        print "az", (value[1][0])
         #print "FOFI_sound_localization-detected", strVarName, " ", value, " ", strMessage,"\n"
 
     def stop(self):
